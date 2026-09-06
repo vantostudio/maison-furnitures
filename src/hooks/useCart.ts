@@ -1,6 +1,11 @@
+"use client";
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Product } from "@/data/products";
+import { browserStorage } from "@/lib/storage";
+import type { Product } from "@/types/catalog";
+
+export const MAX_QUANTITY_PER_ITEM = 10;
 
 export interface CartItem {
   product: Product;
@@ -25,15 +30,21 @@ export const useCart = create<CartState>()(
       addItem: (product: Product, quantity = 1) => {
         set((state) => {
           const existingItem = state.items.find(
-            (item) => item.product.id === product.id
+            (item) => item.product.id === product.id,
           );
 
           if (existingItem) {
             return {
               items: state.items.map((item) =>
                 item.product.id === product.id
-                  ? { ...item, quantity: Math.min(item.quantity + quantity, 10) }
-                  : item
+                  ? {
+                      ...item,
+                      quantity: Math.min(
+                        item.quantity + quantity,
+                        MAX_QUANTITY_PER_ITEM,
+                      ),
+                    }
+                  : item,
               ),
             };
           }
@@ -53,8 +64,8 @@ export const useCart = create<CartState>()(
         set((state) => ({
           items: state.items.map((item) =>
             item.product.id === productId
-              ? { ...item, quantity: Math.min(quantity, 10) }
-              : item
+              ? { ...item, quantity: Math.min(quantity, MAX_QUANTITY_PER_ITEM) }
+              : item,
           ),
         }));
       },
@@ -69,19 +80,21 @@ export const useCart = create<CartState>()(
         set({ items: [] });
       },
 
-      getSubtotal: () => {
-        return get().items.reduce(
+      getSubtotal: () =>
+        get().items.reduce(
           (total, item) => total + item.product.price * item.quantity,
-          0
-        );
-      },
+          0,
+        ),
 
-      getItemCount: () => {
-        return get().items.reduce((count, item) => count + item.quantity, 0);
-      },
+      getItemCount: () =>
+        get().items.reduce((count, item) => count + item.quantity, 0),
     }),
     {
       name: "rowan-ash-cart",
-    }
-  )
+      storage: browserStorage,
+      // The server has no localStorage, so the first client render must match
+      // the server's empty cart. StoreHydration rehydrates after mount.
+      skipHydration: true,
+    },
+  ),
 );

@@ -1,0 +1,6 @@
+# pnpm 11 blocks postinstall scripts unless they are approved here, and a plain
+# `pnpm install` exits non-zero until they are. esbuild backs vitest and
+# unrs-resolver backs the ESLint resolver, so both are required to install.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
